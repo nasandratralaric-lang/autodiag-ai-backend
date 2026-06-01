@@ -12,16 +12,26 @@ export class ClaudeProvider implements AIProviderInterface {
     readonly name = 'claude';
     readonly model = 'claude-sonnet-4-6';
     private readonly logger = new Logger(ClaudeProvider.name);
-    private readonly client: Anthropic;
+    private client: Anthropic | null = null;
 
     constructor(private readonly config: ConfigService) {
-        this.client = new Anthropic({ apiKey: this.config.get('ANTHROPIC_API_KEY') });
+        const apiKey = this.config.get<string>('ANTHROPIC_API_KEY');
+        if (apiKey) {
+            this.client = new Anthropic({ apiKey });
+        } else {
+            this.logger.warn('ANTHROPIC_API_KEY non configurée — provider Claude désactivé');
+        }
+    }
+
+    private requireClient(): Anthropic {
+        if (!this.client) throw new Error('ANTHROPIC_API_KEY manquante');
+        return this.client;
     }
 
     async analyze(request: DiagnosticRequest): Promise<DiagnosticResponse> {
         const userContext = buildDiagnosticContext(request);
 
-        const response = await this.client.messages.create({
+        const response = await this.requireClient().messages.create({
             model: this.model,
             max_tokens: 2000,
             system: DIAGNOSTIC_SYSTEM_PROMPT,
@@ -51,7 +61,7 @@ export class ClaudeProvider implements AIProviderInterface {
             },
         ];
 
-        const response = await this.client.messages.create({
+        const response = await this.requireClient().messages.create({
             model: this.model,
             max_tokens: 2000,
             system: DIAGNOSTIC_SYSTEM_PROMPT,
@@ -65,7 +75,7 @@ export class ClaudeProvider implements AIProviderInterface {
     }
 
     async chat(messages: ChatMessage[], systemPrompt?: string): Promise<string> {
-        const response = await this.client.messages.create({
+        const response = await this.requireClient().messages.create({
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 1000,
             system: systemPrompt,
