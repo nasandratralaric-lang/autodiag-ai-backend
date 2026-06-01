@@ -33,16 +33,22 @@ export class OpenRouterProvider implements AIProviderInterface {
         this.model = this.config.get<string>('OPENROUTER_MODEL', 'meta-llama/llama-3.3-70b-instruct:free');
 
         if (apiKey) {
+            // Nettoyer la clé (trim + enlever guillemets éventuels)
+            const cleanKey = apiKey.trim().replace(/^["']|["']$/g, '');
             this.client = new OpenAI({
-                apiKey,
+                apiKey: cleanKey,
                 baseURL: 'https://openrouter.ai/api/v1',
-                timeout: 90_000,  // 90s — gros modèle free peut être lent
+                timeout: 90_000,
                 defaultHeaders: {
-                    'HTTP-Referer': 'https://autodiag.mg',
-                    'X-Title':      'AutoDiag AI Madagascar',
+                    // Forcer le header Authorization explicitement
+                    // (le SDK OpenAI peut ne pas l'injecter sur une baseURL custom)
+                    'Authorization':  `Bearer ${cleanKey}`,
+                    'HTTP-Referer':   'https://autodiag.mg',
+                    'X-Title':        'AutoDiag AI Madagascar',
+                    'Content-Type':   'application/json',
                 },
             });
-            this.logger.log(`OpenRouter configuré avec le modèle : ${this.model}`);
+            this.logger.log(`OpenRouter configuré — modèle: ${this.model}, clé: ${cleanKey.slice(0, 12)}...`);
         } else {
             this.logger.warn('OPENROUTER_API_KEY non configurée — provider OpenRouter désactivé');
         }
