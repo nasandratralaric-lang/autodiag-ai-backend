@@ -1,6 +1,6 @@
 import {
     Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
-    UpdateDateColumn, DeleteDateColumn, OneToMany,
+    UpdateDateColumn, DeleteDateColumn,
 } from 'typeorm';
 
 @Entity('users')
@@ -8,69 +8,67 @@ export class User {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ unique: true, nullable: true })
+    @Column({ type: 'varchar', unique: true, nullable: true })
     email: string | null;
 
-    @Column({ unique: true, nullable: true })
+    @Column({ type: 'varchar', unique: true, nullable: true })
     phone: string | null;
 
-    @Column({ nullable: true, select: false })
+    @Column({ type: 'varchar', nullable: true, select: false })
     passwordHash: string | null;
 
     @Column({ type: 'enum', enum: ['email', 'google', 'phone'], default: 'email' })
     authProvider: string;
 
-    @Column({ unique: true, nullable: true })
+    @Column({ type: 'varchar', unique: true, nullable: true })
     googleId: string | null;
 
-    @Column({ nullable: true })
-    firstName: string;
+    @Column({ type: 'varchar', nullable: true })
+    firstName: string | null;
 
-    @Column({ nullable: true })
-    lastName: string;
+    @Column({ type: 'varchar', nullable: true })
+    lastName: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     avatarUrl: string | null;
 
-    @Column({ default: 'fr' })
+    @Column({ type: 'varchar', default: 'fr' })
     locale: string;
 
-    @Column({ default: 'MDG' })
+    @Column({ type: 'varchar', default: 'MDG' })
     country: string;
 
     @Column({ type: 'enum', enum: ['starter', 'plus', 'pro', 'fleet'], default: 'starter' })
     plan: string;
 
-    @Column({ nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     planExpiresAt: Date | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     stripeCustomerId: string | null;
 
-    // Consentements RGPD
-    @Column({ default: false })
+    @Column({ type: 'boolean', default: false })
     consentAnalytics: boolean;
 
-    @Column({ default: false })
+    @Column({ type: 'boolean', default: false })
     consentDataSharing: boolean;
 
-    @Column({ default: false })
+    @Column({ type: 'boolean', default: false })
     consentMarketing: boolean;
 
-    @Column({ nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     consentUpdatedAt: Date | null;
 
-    // Sécurité
-    @Column({ default: false })
+    @Column({ type: 'boolean', default: false })
     emailVerified: boolean;
 
-    @Column({ default: false })
+    @Column({ type: 'boolean', default: false })
     phoneVerified: boolean;
 
-    @Column({ nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     lastLoginAt: Date | null;
 
-    @Column({ default: 0 })
+    @Column({ type: 'int', default: 0 })
     loginCount: number;
 
     @CreateDateColumn()

@@ -9,7 +9,7 @@ export class Vehicle {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column()
+    @Column({ type: 'varchar' })
     @Index()
     userId: string;
 
@@ -17,38 +17,34 @@ export class Vehicle {
     @JoinColumn({ name: 'userId' })
     user: User;
 
-    @Column({ nullable: true, unique: true })
+    @Column({ type: 'varchar', nullable: true, unique: true })
     vin: string | null;
 
-    @Column({ nullable: true })
-    plateNumber: string;
+    @Column({ type: 'varchar', nullable: true })
+    plateNumber: string | null;
 
-    @Column({ default: 'MDG' })
+    @Column({ type: 'varchar', default: 'MDG' })
     plateCountry: string;
 
-    @Column()
+    @Column({ type: 'varchar' })
     make: string;
 
-    @Column()
+    @Column({ type: 'varchar' })
     model: string;
 
     @Column({ type: 'smallint', nullable: true })
     year: number | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     variant: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     engineCode: string | null;
 
     @Column({ type: 'int', nullable: true })
     engineDisplacementCc: number | null;
 
-    @Column({
-        type: 'enum',
-        enum: ['petrol', 'diesel', 'lpg', 'electric', 'hybrid'],
-        nullable: true,
-    })
+    @Column({ type: 'enum', enum: ['petrol', 'diesel', 'lpg', 'electric', 'hybrid'], nullable: true })
     fuelType: string | null;
 
     @Column({ type: 'smallint', nullable: true })
@@ -57,38 +53,34 @@ export class Vehicle {
     @Column({ type: 'smallint', nullable: true })
     cylinders: number | null;
 
-    @Column({
-        type: 'enum',
-        enum: ['manual', 'automatic', 'cvt', 'semi_auto'],
-        nullable: true,
-    })
+    @Column({ type: 'enum', enum: ['manual', 'automatic', 'cvt', 'semi_auto'], nullable: true })
     transmission: string | null;
 
     @Column({ type: 'int', default: 0 })
     mileageKm: number;
 
-    @Column({ nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     mileageUpdatedAt: Date | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     photoUrl: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     registrationCardPhotoUrl: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     platePhotoUrl: string | null;
 
     @Column({ type: 'jsonb', nullable: true })
     ocrExtractedData: Record<string, any> | null;
 
-    @Column({ default: false })
+    @Column({ type: 'boolean', default: false })
     ocrVerified: boolean;
 
-    @Column({ default: false })
+    @Column({ type: 'boolean', default: false })
     isPrimary: boolean;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     nickname: string | null;
 
     @CreateDateColumn()

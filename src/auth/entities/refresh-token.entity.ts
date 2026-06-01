@@ -9,26 +9,26 @@ export class RefreshToken {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column()
+    @Column({ type: 'varchar' })
     userId: string;
 
     @ManyToOne(() => User, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'userId' })
     user: User;
 
-    @Column({ unique: true })
+    @Column({ type: 'varchar', unique: true })
     tokenHash: string;
 
     @Column({ type: 'jsonb', nullable: true })
     deviceInfo: { os?: string; model?: string; appVersion?: string } | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     ipAddress: string | null;
 
-    @Column()
+    @Column({ type: 'timestamptz' })
     expiresAt: Date;
 
-    @Column({ nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     revokedAt: Date | null;
 
     @CreateDateColumn()
