@@ -66,7 +66,12 @@ export class AuthService {
     }
 
     async loginWithEmail(email: string, password: string): Promise<{ user: User; tokens: TokenPair }> {
-        const user = await this.users.findOne({ where: { email, deletedAt: IsNull() } });
+        // select: true pour récupérer passwordHash (exclu par défaut via select: false sur l'entité)
+        const user = await this.users
+            .createQueryBuilder('u')
+            .addSelect('u.passwordHash')
+            .where('u.email = :email AND u.deletedAt IS NULL', { email })
+            .getOne();
         if (!user?.passwordHash) throw new UnauthorizedException('Identifiants invalides');
 
         const valid = await bcrypt.compare(password, user.passwordHash);
