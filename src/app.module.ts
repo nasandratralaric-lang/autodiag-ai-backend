@@ -10,6 +10,7 @@ import { MaintenanceModule } from './maintenance/maintenance.module';
 import { DiagnosticsModule } from './diagnostics/diagnostics.module';
 import { OBD2Module } from './obd2/obd2.module';
 import { AIModule } from './ai/ai.module';
+import { HealthController } from './common/health.controller';
 
 @Module({
     imports: [
@@ -89,5 +90,6 @@ import { AIModule } from './ai/ai.module';
         OBD2Module,
         AIModule,
     ],
+    controllers: [HealthController],
 })
 export class AppModule {}
