@@ -32,7 +32,7 @@ export class DiagnosticsController {
     @Get(':sessionId')
     @ApiOperation({ summary: 'Récupère une session de diagnostic' })
     async getSession(@Param('sessionId') sessionId: string, @Request() req) {
-        return this.diagnosticsService.loadSession(sessionId, req.user.id);
+        return this.diagnosticsService.findSession(sessionId, req.user.id);
     }
 
     @Post(':sessionId/test-result')
