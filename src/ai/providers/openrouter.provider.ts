@@ -36,6 +36,7 @@ export class OpenRouterProvider implements AIProviderInterface {
             this.client = new OpenAI({
                 apiKey,
                 baseURL: 'https://openrouter.ai/api/v1',
+                timeout: 90_000,  // 90s — gros modèle free peut être lent
                 defaultHeaders: {
                     'HTTP-Referer': 'https://autodiag.mg',
                     'X-Title':      'AutoDiag AI Madagascar',
@@ -60,7 +61,8 @@ export class OpenRouterProvider implements AIProviderInterface {
                     { role: 'user',   content: buildDiagnosticContext(request) },
                 ],
                 temperature: 0.3,
-                max_tokens: 2000,
+                max_tokens: 1500,   // réduit pour accélérer la réponse
+                // Pas de response_format JSON car non supporté par tous les modèles OpenRouter
             });
         } catch (err: any) {
             this.logger.error(`OpenRouter API error: ${err.status} — ${err.message}`);

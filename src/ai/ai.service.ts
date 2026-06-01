@@ -55,10 +55,12 @@ export class AIService {
         for (const provider of this.providers) {
             try {
                 this.logger.log(`Essai provider: ${provider.name} (${provider.model})`);
+                // OpenRouter (gros modèle free) peut prendre jusqu'à 90s
+                const timeoutMs = provider.name === 'openrouter' ? 90_000 : 30_000;
                 const result = await this.withTimeout(
                     provider.analyze(request),
-                    20_000,
-                    `${provider.name} timeout`
+                    timeoutMs,
+                    `${provider.name} timeout après ${timeoutMs/1000}s`
                 );
                 await this.redis.setex(cacheKey, this.CACHE_TTL_SECONDS, JSON.stringify(result));
                 return { ...result, provider: provider.name, cached: false };
