@@ -15,16 +15,26 @@ export class OpenAIProvider implements AIProviderInterface {
     readonly name = 'openai';
     readonly model = 'gpt-4o';
     private readonly logger = new Logger(OpenAIProvider.name);
-    private readonly client: OpenAI;
+    private client: OpenAI | null = null;
 
     constructor(private readonly config: ConfigService) {
-        this.client = new OpenAI({ apiKey: this.config.get('OPENAI_API_KEY') });
+        const apiKey = this.config.get('OPENAI_API_KEY');
+        if (apiKey) {
+            this.client = new OpenAI({ apiKey });
+        } else {
+            this.logger.warn('OPENAI_API_KEY non configurée — provider OpenAI désactivé');
+        }
+    }
+
+    private getClient(): OpenAI {
+        if (!this.client) throw new Error('OPENAI_API_KEY manquante');
+        return this.client;
     }
 
     async analyze(request: DiagnosticRequest): Promise<DiagnosticResponse> {
         const userContext = buildDiagnosticContext(request);
 
-        const response = await this.client.chat.completions.create({
+        const response = await this.getClient().chat.completions.create({
             model: this.model,
             messages: [
                 { role: 'system', content: DIAGNOSTIC_SYSTEM_PROMPT },
@@ -65,7 +75,7 @@ Veuillez affiner votre diagnostic en tenant compte de ces résultats. Retournez 
             },
         ];
 
-        const response = await this.client.chat.completions.create({
+        const response = await this.getClient().chat.completions.create({
             model: this.model,
             messages,
             response_format: { type: 'json_object' },
@@ -86,7 +96,7 @@ Veuillez affiner votre diagnostic en tenant compte de ces résultats. Retournez 
             content: m.content,
         })));
 
-        const response = await this.client.chat.completions.create({
+        const response = await this.getClient().chat.completions.create({
             model: 'gpt-4o-mini',
             messages: openaiMessages,
             temperature: 0.7,
