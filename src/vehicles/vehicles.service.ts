@@ -2,7 +2,7 @@ import {
     Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Vehicle } from './entities/vehicle.entity';
 
 const MAX_VEHICLES_BY_PLAN: Record<string, number> = {
@@ -37,20 +37,20 @@ export class VehiclesService {
 
     async findAllForUser(userId: string): Promise<Vehicle[]> {
         return this.vehicles.find({
-            where: { userId, deletedAt: null },
+            where: { userId, deletedAt: IsNull() },
             order: { isPrimary: 'DESC', createdAt: 'ASC' },
         });
     }
 
     async findOne(id: string, userId: string): Promise<Vehicle> {
-        const vehicle = await this.vehicles.findOne({ where: { id, deletedAt: null } });
+        const vehicle = await this.vehicles.findOne({ where: { id, deletedAt: IsNull() } });
         if (!vehicle) throw new NotFoundException('Véhicule non trouvé');
         if (vehicle.userId !== userId) throw new ForbiddenException();
         return vehicle;
     }
 
     async create(userId: string, userPlan: string, dto: CreateVehicleDto): Promise<Vehicle> {
-        const count = await this.vehicles.count({ where: { userId, deletedAt: null } });
+        const count = await this.vehicles.count({ where: { userId, deletedAt: IsNull() } });
         const max = MAX_VEHICLES_BY_PLAN[userPlan] ?? 2;
 
         if (count >= max) {
@@ -73,19 +73,18 @@ export class VehiclesService {
             throw new BadRequestException('Le nouveau kilométrage ne peut pas être inférieur à l\'actuel');
         }
         await this.vehicles.update(id, { mileageKm, mileageUpdatedAt: new Date() });
-        return { ...vehicle, mileageKm };
+        // Recharger depuis la DB pour retourner l'entité complète avec les getters
+        return this.findOne(id, userId);
     }
 
     async updateOCRData(id: string, userId: string, ocrData: Record<string, any>): Promise<Vehicle> {
         const vehicle = await this.findOne(id, userId);
-        // Fusionner les données OCR avec les données existantes (OCR complète, ne remplace pas)
-        const merged = { ...vehicle, ...this.mapOCRToVehicle(ocrData), ocrExtractedData: ocrData };
-        await this.vehicles.save(merged);
-        return merged as Vehicle;
+        await this.vehicles.save({ ...vehicle, ...this.mapOCRToVehicle(ocrData), ocrExtractedData: ocrData });
+        return this.findOne(id, userId);
     }
 
     async softDelete(id: string, userId: string): Promise<void> {
-        const vehicle = await this.findOne(id, userId);
+        await this.findOne(id, userId);
         await this.vehicles.softDelete(id);
         this.logger.log(`Vehicle soft-deleted: ${id}`);
     }

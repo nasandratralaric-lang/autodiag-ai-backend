@@ -213,7 +213,7 @@ export class DiagnosticsService {
             },
             maintenanceHistory: [], // TODO: charger depuis MaintenanceRepository
             symptoms:           dto.symptoms,
-            recentWorks:        dto.recentWorks,
+            recentWorks:        dto.recentWorks.map(w => ({ ...w, date: w.date ?? null })),
             userDescription:    dto.userDescription,
             obdSnapshot:        dto.obdSnapshot as any ?? null,
             previousDiagnostics: [],
