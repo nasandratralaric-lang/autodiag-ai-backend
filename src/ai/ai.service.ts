@@ -63,7 +63,7 @@ export class AIService {
                 await this.redis.setex(cacheKey, this.CACHE_TTL_SECONDS, JSON.stringify(result));
                 return { ...result, provider: provider.name, cached: false };
             } catch (error) {
-                this.logger.warn(`Provider ${provider.name} failed: ${error.message}`);
+                this.logger.error(`Provider ${provider.name} FAILED: ${error.message}`, error.stack);
                 lastError = error;
             }
         }
