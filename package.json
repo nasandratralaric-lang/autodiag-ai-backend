@@ -2,6 +2,9 @@
   "name": "autodiag-ai-backend",
   "version": "0.1.0",
   "description": "AutoDiag AI Madagascar — Backend NestJS",
+  "engines": {
+    "node": ">=20.0.0 <22.0.0"
+  },
   "scripts": {
     "build": "nest build",
     "start": "nest start",
