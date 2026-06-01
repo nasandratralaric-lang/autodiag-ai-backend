@@ -17,7 +17,7 @@ import { User } from '../users/entities/user.entity';
             inject: [ConfigService],
             useFactory: (config: ConfigService) => ({
                 secret: config.get('JWT_SECRET'),
-                signOptions: { expiresIn: config.get('JWT_ACCESS_EXPIRY', '15m') },
+                signOptions: { expiresIn: config.get('JWT_ACCESS_EXPIRY', '24h') },
             }),
         }),
         TypeOrmModule.forFeature([User, RefreshToken]),

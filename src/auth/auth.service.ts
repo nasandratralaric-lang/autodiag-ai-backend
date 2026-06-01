@@ -144,7 +144,7 @@ export class AuthService {
         const rawRefresh = randomBytes(40).toString('hex');
         const tokenHash = this.hashToken(rawRefresh);
 
-        const expiryDays = parseInt(this.config.get('JWT_REFRESH_EXPIRY_DAYS', '30'));
+        const expiryDays = parseInt(this.config.get('JWT_REFRESH_EXPIRY_DAYS', '90'));
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + expiryDays);
 
@@ -155,7 +155,7 @@ export class AuthService {
         return {
             accessToken,
             refreshToken: rawRefresh,
-            expiresIn: 15 * 60, // 15 minutes en secondes
+            expiresIn: 24 * 3600, // 24h — permet l'utilisation hors ligne toute la journée
         };
     }
 
