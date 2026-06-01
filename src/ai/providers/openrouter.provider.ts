@@ -49,24 +49,46 @@ export class OpenRouterProvider implements AIProviderInterface {
 
     async analyze(request: DiagnosticRequest): Promise<DiagnosticResponse> {
         const client = this.requireClient();
-        const response = await client.chat.completions.create({
-            model: this.model,
-            messages: [
-                { role: 'system', content: DIAGNOSTIC_SYSTEM_PROMPT },
-                { role: 'user',   content: buildDiagnosticContext(request) },
-            ],
-            temperature: 0.3,
-            max_tokens: 2000,
-        });
+        this.logger.log(`OpenRouter → model: ${this.model}`);
+
+        let response: OpenAI.Chat.ChatCompletion;
+        try {
+            response = await client.chat.completions.create({
+                model: this.model,
+                messages: [
+                    { role: 'system', content: DIAGNOSTIC_SYSTEM_PROMPT },
+                    { role: 'user',   content: buildDiagnosticContext(request) },
+                ],
+                temperature: 0.3,
+                max_tokens: 2000,
+            });
+        } catch (err: any) {
+            this.logger.error(`OpenRouter API error: ${err.status} — ${err.message}`);
+            if (err.error) this.logger.error(`OpenRouter detail: ${JSON.stringify(err.error)}`);
+            throw err;
+        }
+
+        // Vérifier si OpenRouter renvoie une erreur dans le corps
+        const raw = response as any;
+        if (raw.error) {
+            throw new Error(`OpenRouter model error: ${raw.error.message || JSON.stringify(raw.error)}`);
+        }
 
         const content = response.choices[0]?.message?.content;
-        if (!content) throw new Error('Réponse vide de OpenRouter');
+        if (!content) {
+            this.logger.error(`OpenRouter vide. finish_reason: ${response.choices[0]?.finish_reason}, usage: ${JSON.stringify(response.usage)}`);
+            throw new Error(`Réponse vide de OpenRouter (finish_reason: ${response.choices[0]?.finish_reason})`);
+        }
 
         const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error('Aucun JSON dans la réponse OpenRouter');
+        if (!jsonMatch) {
+            this.logger.error(`OpenRouter réponse non-JSON: ${content.slice(0, 200)}`);
+            throw new Error('Aucun JSON dans la réponse OpenRouter');
+        }
 
         const parsed = JSON.parse(jsonMatch[0]);
         this.validate(parsed);
+        this.logger.log(`OpenRouter OK — cause: ${parsed.primaryCause?.slice(0, 60)}`);
         return parsed as DiagnosticResponse;
     }
 
