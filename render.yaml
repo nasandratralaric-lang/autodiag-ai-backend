@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: autodiag-ai-api
+    runtime: node
+    region: frankfurt         # Frankfurt = latence correcte depuis Madagascar
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node dist/main
+    healthCheckPath: /api/health/ping
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+
+      # Base de données — Neon PostgreSQL (coller l'URL depuis le dashboard Neon)
+      - key: DATABASE_URL
+        sync: false           # Render demandera la valeur lors du déploiement
+
+      # Redis — Upstash (coller l'URL depuis le dashboard Upstash)
+      - key: REDIS_URL
+        sync: false
+
+      # JWT (générer avec : openssl rand -hex 32)
+      - key: JWT_SECRET
+        sync: false
+
+      # IA — au moins une clé requise
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+      # Google OAuth
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        fromService:
+          name: autodiag-ai-api
+          type: web
+          property: host
+          # Render injecte automatiquement l'URL publique
+
+      # Firebase (push notifications)
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
