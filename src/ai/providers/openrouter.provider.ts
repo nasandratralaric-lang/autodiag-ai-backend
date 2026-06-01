@@ -97,7 +97,7 @@ export class OpenRouterProvider implements AIProviderInterface {
                 temperature: 0.3,
                 max_tokens:  maxTokens,
             }),
-            signal: AbortSignal.timeout(90_000),
+            signal: AbortSignal.timeout(180_000),
         });
 
         const data: any = await response.json();
