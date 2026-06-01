@@ -8,6 +8,7 @@ import { AIService } from '../ai/ai.service';
 import { DiagnosticRequest } from '../ai/ai.interface';
 import { DiagnosticSession, DiagnosticMessage, DiagnosticTest } from './entities/diagnostic-session.entity';
 import { Vehicle } from '../vehicles/entities/vehicle.entity';
+import { MaintenanceService } from '../maintenance/maintenance.service';
 
 export interface StartDiagnosticDto {
     vehicleId: string;
@@ -41,6 +42,7 @@ export class DiagnosticsService {
         @InjectRepository(Vehicle)
         private readonly vehicles: Repository<Vehicle>,
         private readonly aiService: AIService,
+        private readonly maintenanceService: MaintenanceService,
     ) {}
 
     async startDiagnostic(dto: StartDiagnosticDto): Promise<DiagnosticSession> {
@@ -63,8 +65,17 @@ export class DiagnosticsService {
             })
         );
 
-        // 3. Assembler le contexte IA
-        const context = await this.buildDiagnosticRequest(vehicle, dto);
+        // 3. Charger l'historique d'entretien (24 derniers mois → contexte IA)
+        const maintenanceHistory = await this.maintenanceService
+            .getAIContextSummary(dto.vehicleId)
+            .catch(() => []);
+
+        this.logger.log(
+            `Diagnostic ${session.id} — ${maintenanceHistory.length} entrées d'entretien chargées pour ${vehicle.make} ${vehicle.model}`
+        );
+
+        // 4. Assembler le contexte IA
+        const context = await this.buildDiagnosticRequest(vehicle, dto, maintenanceHistory);
 
         // 4. Appeler l'IA
         let aiResult: any;
@@ -200,6 +211,24 @@ export class DiagnosticsService {
         dto: StartDiagnosticDto,
         maintenanceHistory: any[] = [],
     ): Promise<DiagnosticRequest> {
+        // Charger les 5 derniers diagnostics du véhicule pour la mémoire long terme
+        const previousDiagnostics = await this.sessions
+            .find({
+                where: { vehicleId: dto.vehicleId, status: 'completed' },
+                order: { createdAt: 'DESC' },
+                take: 5,
+            })
+            .then(sessions => sessions
+                .filter(s => s.primaryCause)
+                .map(s => ({
+                    date:          s.createdAt.toISOString().split('T')[0],
+                    primaryCause:  s.primaryCause,
+                    repair:        s.repairDescription ?? null,
+                    resolved:      s.repairResolved ?? null,
+                }))
+            )
+            .catch(() => []);
+
         return {
             vehicleContext: {
                 make:                 vehicle.make,
@@ -211,12 +240,12 @@ export class DiagnosticsService {
                 mileageKm:            vehicle.mileageKm,
                 vin:                  vehicle.vin ?? null,
             },
-            maintenanceHistory: [], // TODO: charger depuis MaintenanceRepository
-            symptoms:           dto.symptoms,
-            recentWorks:        dto.recentWorks.map(w => ({ ...w, date: w.date ?? null })),
-            userDescription:    dto.userDescription,
-            obdSnapshot:        dto.obdSnapshot as any ?? null,
-            previousDiagnostics: [],
+            maintenanceHistory,        // ← historique entretien réel
+            symptoms:                  dto.symptoms,
+            recentWorks:               dto.recentWorks.map(w => ({ ...w, date: w.date ?? null })),
+            userDescription:           dto.userDescription,
+            obdSnapshot:               dto.obdSnapshot as any ?? null,
+            previousDiagnostics,       // ← diagnostics précédents du même véhicule
         };
     }
 }
