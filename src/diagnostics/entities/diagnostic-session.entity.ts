@@ -10,21 +10,21 @@ export class DiagnosticSession {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column() @Index()
+    @Column({ type: 'varchar' }) @Index()
     vehicleId: string;
 
     @ManyToOne(() => Vehicle, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'vehicleId' })
     vehicle: Vehicle;
 
-    @Column()
+    @Column({ type: 'varchar' })
     userId: string;
 
     @ManyToOne(() => User)
     @JoinColumn({ name: 'userId' })
     user: User;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     obd2SessionId: string | null;
 
     @Column({ type: 'enum', enum: ['pending','in_progress','completed','cancelled'], default: 'pending' })
@@ -45,43 +45,40 @@ export class DiagnosticSession {
     @Column({ type: 'text', nullable: true })
     aiContextSent: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     aiProvider: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     aiModel: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'int', nullable: true })
     aiTokensUsed: number | null;
 
-    // Résumé du résultat (colonnes indexables)
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     primaryCause: string | null;
 
     @Column({ type: 'smallint', nullable: true })
     confidence: number | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     severity: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     driveRisk: string | null;
 
-    // Résultat complet JSON
     @Column({ type: 'jsonb', nullable: true })
     result: Record<string, any> | null;
 
-    // Feedback post-réparation
-    @Column({ nullable: true })
+    @Column({ type: 'boolean', nullable: true })
     repairDone: boolean | null;
 
     @Column({ type: 'text', nullable: true })
     repairDescription: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'boolean', nullable: true })
     repairResolved: boolean | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     feedbackAt: Date | null;
 
     @OneToMany(() => DiagnosticMessage, m => m.session, { cascade: true })
@@ -99,7 +96,7 @@ export class DiagnosticMessage {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column() @Index()
+    @Column({ type: 'varchar' }) @Index()
     sessionId: string;
 
     @ManyToOne(() => DiagnosticSession, s => s.messages, { onDelete: 'CASCADE' })
@@ -112,7 +109,7 @@ export class DiagnosticMessage {
     @Column({ type: 'text' })
     content: string;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     messageType: string | null;
 
     @Column({ type: 'jsonb', nullable: true })
@@ -127,7 +124,7 @@ export class DiagnosticTest {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column() @Index()
+    @Column({ type: 'varchar' }) @Index()
     sessionId: string;
 
     @ManyToOne(() => DiagnosticSession, s => s.tests, { onDelete: 'CASCADE' })
@@ -137,7 +134,7 @@ export class DiagnosticTest {
     @Column({ type: 'smallint' })
     sequenceOrder: number;
 
-    @Column()
+    @Column({ type: 'varchar' })
     title: string;
 
     @Column({ type: 'text' })
@@ -146,7 +143,7 @@ export class DiagnosticTest {
     @Column({ type: 'jsonb', nullable: true })
     preconditions: string[] | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'int', nullable: true })
     estimatedDurationSeconds: number | null;
 
     @Column({ type: 'text', array: true, nullable: true })
@@ -170,6 +167,6 @@ export class DiagnosticTest {
     @Column({ type: 'text', nullable: true })
     aiInterpretation: string | null;
 
-    @Column({ nullable: true }) startedAt: Date | null;
-    @Column({ nullable: true }) completedAt: Date | null;
+    @Column({ type: 'timestamptz', nullable: true }) startedAt: Date | null;
+    @Column({ type: 'timestamptz', nullable: true }) completedAt: Date | null;
 }

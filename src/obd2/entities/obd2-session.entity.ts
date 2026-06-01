@@ -10,46 +10,45 @@ export class OBD2Session {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column()
-    @Index()
+    @Column({ type: 'varchar' }) @Index()
     vehicleId: string;
 
     @ManyToOne(() => Vehicle, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'vehicleId' })
     vehicle: Vehicle;
 
-    @Column()
+    @Column({ type: 'varchar' })
     userId: string;
 
     @ManyToOne(() => User)
     @JoinColumn({ name: 'userId' })
     user: User;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     elm327DeviceName: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     elm327Address: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     protocol: string | null;
 
     @CreateDateColumn()
     startedAt: Date;
 
-    @Column({ nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     endedAt: Date | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'int', nullable: true })
     durationSeconds: number | null;
 
-    @Column({ default: 0 })
+    @Column({ type: 'int', default: 0 })
     totalReadings: number;
 
     @Column({ type: 'jsonb', nullable: true })
     dtcsFound: { code: string; description: string; isPending: boolean }[] | null;
 
-    @Column({ default: false })
+    @Column({ type: 'boolean', default: false })
     dtcsCleared: boolean;
 
     @Column({ type: 'jsonb', nullable: true })
