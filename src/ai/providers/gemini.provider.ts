@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 import {
     AIProviderInterface, DiagnosticRequest, DiagnosticResponse,
     TestRefinementRequest, ChatMessage,
@@ -19,49 +19,38 @@ export class GeminiProvider implements AIProviderInterface {
     }
 
     async analyze(request: DiagnosticRequest): Promise<DiagnosticResponse> {
-        const model = this.genAI.getGenerativeModel({
-            model: this.model,
-            systemInstruction: DIAGNOSTIC_SYSTEM_PROMPT,
-            generationConfig: { responseMimeType: 'application/json', temperature: 0.3 },
-        });
-
-        const result = await model.generateContent(buildDiagnosticContext(request));
+        const model = this.getModel();
+        const prompt = `${DIAGNOSTIC_SYSTEM_PROMPT}\n\n${buildDiagnosticContext(request)}\n\nRéponds en JSON valide uniquement.`;
+        const result = await model.generateContent(prompt);
         const text = result.response.text();
-        return JSON.parse(text) as DiagnosticResponse;
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('No JSON in Gemini response');
+        return JSON.parse(jsonMatch[0]) as DiagnosticResponse;
     }
 
     async refineAfterTest(request: TestRefinementRequest): Promise<DiagnosticResponse> {
-        const model = this.genAI.getGenerativeModel({
-            model: this.model,
-            systemInstruction: DIAGNOSTIC_SYSTEM_PROMPT,
-            generationConfig: { responseMimeType: 'application/json' },
-        });
-
-        const history = request.previousMessages
-            .filter(m => m.role !== 'system')
-            .map(m => ({
-                role: m.role === 'assistant' ? 'model' : 'user',
-                parts: [{ text: m.content }],
-            }));
-
-        const chat = model.startChat({ history });
-        const result = await chat.sendMessage(
-            `Test: ${request.testResult.testTitle}. Réponse: ${request.testResult.userResponse}. Affinez.`
-        );
-        return JSON.parse(result.response.text());
+        const model = this.getModel();
+        const prompt = `${DIAGNOSTIC_SYSTEM_PROMPT}\n\nTest: ${request.testResult.testTitle}.\nRéponse: ${request.testResult.userResponse}.\nAffinez le diagnostic en JSON.`;
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('No JSON in Gemini refine response');
+        return JSON.parse(jsonMatch[0]);
     }
 
     async chat(messages: ChatMessage[], systemPrompt?: string): Promise<string> {
-        const model = this.genAI.getGenerativeModel({
-            model: 'gemini-1.5-flash',
-            systemInstruction: systemPrompt,
-        });
+        const model = this.getModel();
         const last = messages[messages.length - 1];
-        const result = await model.generateContent(last?.content ?? '');
+        const prompt = systemPrompt ? `${systemPrompt}\n\n${last?.content ?? ''}` : (last?.content ?? '');
+        const result = await model.generateContent(prompt);
         return result.response.text();
     }
 
     estimateTokens(request: DiagnosticRequest): number {
         return Math.ceil(buildDiagnosticContext(request).length / 4) + 600;
+    }
+
+    private getModel(): GenerativeModel {
+        return this.genAI.getGenerativeModel({ model: this.model });
     }
 }

@@ -3,7 +3,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
@@ -66,7 +66,7 @@ export class AuthService {
     }
 
     async loginWithEmail(email: string, password: string): Promise<{ user: User; tokens: TokenPair }> {
-        const user = await this.users.findOne({ where: { email, deletedAt: null } });
+        const user = await this.users.findOne({ where: { email, deletedAt: IsNull() } });
         if (!user?.passwordHash) throw new UnauthorizedException('Identifiants invalides');
 
         const valid = await bcrypt.compare(password, user.passwordHash);
@@ -99,7 +99,7 @@ export class AuthService {
     async refreshTokens(rawRefreshToken: string): Promise<TokenPair> {
         const tokenHash = this.hashToken(rawRefreshToken);
         const stored = await this.tokens.findOne({
-            where: { tokenHash, revokedAt: null },
+            where: { tokenHash, revokedAt: IsNull() },
             relations: ['user'],
         });
 

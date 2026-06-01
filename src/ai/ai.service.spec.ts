@@ -3,7 +3,8 @@ import { AIService } from './ai.service';
 import { OpenAIProvider } from './providers/openai.provider';
 import { ClaudeProvider } from './providers/claude.provider';
 import { GeminiProvider } from './providers/gemini.provider';
-import { getRedisToken } from '@liaoliaots/nestjs-redis';
+// Redis token mock — compatible v9 and v10
+const getRedisToken = (name?: string) => name ? `IORedis:${name}` : 'IORedis:default';
 import { ConfigService } from '@nestjs/config';
 
 const mockDiagnosticRequest = {
