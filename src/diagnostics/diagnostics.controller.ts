@@ -16,12 +16,12 @@ export class DiagnosticsController {
     constructor(private readonly diagnosticsService: DiagnosticsService) {}
 
     @Post('analyze')
-    @RequiredPlan('pro')
-    @UseGuards(PlanGuard)
+    // Plan requis : désactivé pendant la bêta — à remettre sur 'pro' au lancement
+    // @RequiredPlan('pro')
+    // @UseGuards(PlanGuard)
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({ summary: 'Lance un nouveau diagnostic IA' })
     @ApiResponse({ status: 201, description: 'Diagnostic créé et analysé' })
-    @ApiResponse({ status: 403, description: 'Plan insuffisant (Pro requis)' })
     async analyze(@Body() dto: Omit<StartDiagnosticDto, 'userId'>, @Request() req) {
         return this.diagnosticsService.startDiagnostic({
             ...dto,
@@ -36,8 +36,6 @@ export class DiagnosticsController {
     }
 
     @Post(':sessionId/test-result')
-    @RequiredPlan('pro')
-    @UseGuards(PlanGuard)
     @ApiOperation({ summary: 'Soumet le résultat d\'un test interactif' })
     async submitTestResult(
         @Param('sessionId') sessionId: string,
