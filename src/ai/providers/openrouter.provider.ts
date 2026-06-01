@@ -78,10 +78,10 @@ export class OpenRouterProvider implements AIProviderInterface {
 
     // ─── Appel HTTP direct — pas de SDK ───────────────────────────────────────
 
-    private async callApi(messages: any[], maxTokens: number): Promise<string> {
+    private async callApi(messages: any[], maxTokens: number, attempt = 1): Promise<string> {
         if (!this.apiKey) throw new Error('OPENROUTER_API_KEY manquante');
 
-        this.logger.log(`→ POST ${this.baseUrl} Authorization: Bearer ${this.apiKey.slice(0, 15)}...`);
+        this.logger.log(`→ POST OpenRouter (tentative ${attempt}) model: ${this.model}`);
 
         const response = await fetch(this.baseUrl, {
             method: 'POST',
@@ -101,6 +101,17 @@ export class OpenRouterProvider implements AIProviderInterface {
         });
 
         const data: any = await response.json();
+
+        // 429 Rate Limited — attendre et réessayer
+        if (response.status === 429) {
+            const retryAfter = data?.error?.metadata?.retry_after_seconds ?? 15;
+            if (attempt <= 3) {
+                this.logger.warn(`OpenRouter 429 rate-limited — attente ${retryAfter}s puis retry (${attempt}/3)`);
+                await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+                return this.callApi(messages, maxTokens, attempt + 1);
+            }
+            throw new Error(`OpenRouter rate-limited après 3 tentatives`);
+        }
 
         if (!response.ok) {
             this.logger.error(`OpenRouter HTTP ${response.status}: ${JSON.stringify(data)}`);

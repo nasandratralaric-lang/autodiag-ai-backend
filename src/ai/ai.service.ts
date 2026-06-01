@@ -56,7 +56,7 @@ export class AIService {
             try {
                 this.logger.log(`Essai provider: ${provider.name} (${provider.model})`);
                 // OpenRouter (gros modèle free) peut prendre jusqu'à 90s
-                const timeoutMs = provider.name === 'openrouter' ? 90_000 : 30_000;
+                const timeoutMs = provider.name === 'openrouter' ? 120_000 : 30_000;
                 const result = await this.withTimeout(
                     provider.analyze(request),
                     timeoutMs,
