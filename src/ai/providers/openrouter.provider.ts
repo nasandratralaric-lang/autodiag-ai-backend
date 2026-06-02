@@ -159,12 +159,15 @@ Affinez le diagnostic en tenant compte de ce résultat. Retournez le JSON mis à
         // On normalise plutôt que de rejeter
 
         // Champs obligatoires avec fallback raisonnables
+        // Extraire la cause principale depuis différents emplacements possibles
         const primaryCause = data.primaryCause
             || data.primary_cause
             || data.cause
             || data.diagnosis
-            || (data.causes?.[0]?.description)
-            || 'Cause à déterminer';
+            || data.causes?.[0]?.description
+            || data.causes?.[0]?.cause
+            || data.explanation?.split('.')[0]   // première phrase de l'explication
+            || 'Voir actions immédiates ci-dessous';
 
         const confidence = typeof data.confidence === 'number'
             ? data.confidence
