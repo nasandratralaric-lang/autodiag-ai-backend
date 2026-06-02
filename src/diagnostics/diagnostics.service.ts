@@ -8,7 +8,6 @@ import { AIService } from '../ai/ai.service';
 import { DiagnosticRequest } from '../ai/ai.interface';
 import { DiagnosticSession, DiagnosticMessage, DiagnosticTest } from './entities/diagnostic-session.entity';
 import { Vehicle } from '../vehicles/entities/vehicle.entity';
-import { User } from '../users/entities/user.entity';
 import { MaintenanceService } from '../maintenance/maintenance.service';
 
 export interface StartDiagnosticDto {
@@ -44,21 +43,20 @@ export class DiagnosticsService {
         private readonly tests: Repository<DiagnosticTest>,
         @InjectRepository(Vehicle)
         private readonly vehicles: Repository<Vehicle>,
-        @InjectRepository(User)
-        private readonly usersRepository: Repository<User>,
         private readonly aiService: AIService,
         private readonly maintenanceService: MaintenanceService,
     ) {}
 
     async startDiagnostic(dto: StartDiagnosticDto): Promise<DiagnosticSession> {
+        this.logger.log(`startDiagnostic: vehicleId=${dto.vehicleId} userId=${dto.userId} emergency=${dto.isEmergency}`);
+
         // 1. Charger le véhicule + niveau mécanique de l'utilisateur
         const vehicle = await this.vehicles.findOne({ where: { id: dto.vehicleId } });
         if (!vehicle) throw new NotFoundException('Véhicule non trouvé');
         if (vehicle.userId !== dto.userId) throw new ForbiddenException();
 
-        // Récupérer le niveau mécanique depuis le profil utilisateur
-        const userProfile = await this.usersRepository?.findOne({ where: { id: dto.userId } }).catch(() => null);
-        const mechanicLevel = dto.mechanicLevel ?? userProfile?.mechanicLevel ?? 'beginner';
+        // Récupérer le niveau mécanique (safe — ne bloque pas si échoue)
+        const mechanicLevel = dto.mechanicLevel ?? 'beginner';
 
         // 2. Créer la session
         const session = await this.sessions.save(
