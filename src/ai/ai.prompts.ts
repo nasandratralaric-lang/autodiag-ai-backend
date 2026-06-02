@@ -14,6 +14,16 @@ RÈGLES ABSOLUES :
 7. Toujours proposer au moins 1 test interactif quand le diagnostic n'est pas à 95%+
 8. Les coûts doivent être en Ariary malgache (MGA) pour les utilisateurs malgaches
 
+RÈGLES TESTS INTERACTIFS SELON DISPONIBILITÉ OBD2 :
+- Si OBD2 DISPONIBLE : propose des tests avec lecture de capteurs (PIDs), inverser composants, mesures en temps réel
+- Si OBD2 NON DISPONIBLE : propose uniquement des tests physiques réalisables sans équipement :
+  * Observation visuelle (fumée, couleur, odeur)
+  * Tests auditifs (bruits à froid, en charge, à différents régimes)
+  * Tests de comportement (accélération, ralenti, démarrage à chaud/froid)
+  * Vérifications manuelles (niveaux, jauges, état visible des pièces)
+  * Tests d'élimination (débrancher/rebrancher connecteurs, temporaires)
+  JAMAIS demander de lire des PIDs ou codes si OBD2 non disponible.
+
 CONTEXTE MARCHÉ :
 - Application utilisée principalement à Madagascar
 - Véhicules majoritaires : Toyota Corolla, Mazda 323/626, Honda Civic, Mitsubishi Lancer
@@ -75,19 +85,27 @@ export function buildDiagnosticContext(req: DiagnosticRequest): string {
           ).join('\n')
         : '  Aucun historique disponible';
 
-    const obdSection = req.obdSnapshot ? `
-  RPM: ${req.obdSnapshot.rpm ?? 'N/D'} tr/min
-  Température liquide: ${req.obdSnapshot.coolantTemp ?? 'N/D'}°C
-  Charge moteur: ${req.obdSnapshot.engineLoad ?? 'N/D'}%
-  Débit air (MAF): ${req.obdSnapshot.maf ?? 'N/D'} g/s
-  Pression collecteur (MAP): ${req.obdSnapshot.map ?? 'N/D'} kPa
-  Position papillon: ${req.obdSnapshot.throttlePos ?? 'N/D'}%
-  STFT Bank 1: ${req.obdSnapshot.stftB1 ?? 'N/D'}%
-  LTFT Bank 1: ${req.obdSnapshot.ltftB1 ?? 'N/D'}%
-  STFT Bank 2: ${req.obdSnapshot.stftB2 ?? 'N/D'}%
-  LTFT Bank 2: ${req.obdSnapshot.ltftB2 ?? 'N/D'}%
-  Tension batterie: ${req.obdSnapshot.batteryVoltage ?? 'N/D'} V
-  Vitesse: ${req.obdSnapshot.vehicleSpeed ?? 'N/D'} km/h` : '  Non disponible (pas de connexion OBD2)';
+    const obdAvailable = !!req.obdSnapshot;
+    const obdSection = obdAvailable ? `
+⚡ OBD2 CONNECTÉ — données réelles disponibles
+  RPM: ${req.obdSnapshot!.rpm ?? 'N/D'} tr/min
+  Température liquide: ${req.obdSnapshot!.coolantTemp ?? 'N/D'}°C
+  Charge moteur: ${req.obdSnapshot!.engineLoad ?? 'N/D'}%
+  Débit air (MAF): ${req.obdSnapshot!.maf ?? 'N/D'} g/s
+  Pression collecteur (MAP): ${req.obdSnapshot!.map ?? 'N/D'} kPa
+  Position papillon: ${req.obdSnapshot!.throttlePos ?? 'N/D'}%
+  STFT Bank 1: ${req.obdSnapshot!.stftB1 ?? 'N/D'}%
+  LTFT Bank 1: ${req.obdSnapshot!.ltftB1 ?? 'N/D'}%
+  STFT Bank 2: ${req.obdSnapshot!.stftB2 ?? 'N/D'}%
+  LTFT Bank 2: ${req.obdSnapshot!.ltftB2 ?? 'N/D'}%
+  Tension batterie: ${req.obdSnapshot!.batteryVoltage ?? 'N/D'} V
+  Vitesse: ${req.obdSnapshot!.vehicleSpeed ?? 'N/D'} km/h
+  → Tu peux proposer des tests OBD2 (lecture PIDs, inverser composants, mesures en temps réel)`
+    : `
+⚠️ PAS DE CONNEXION OBD2 — diagnostic basé sur les symptômes uniquement
+  → Propose UNIQUEMENT des tests physiques sans équipement électronique :
+    observation visuelle, tests auditifs, vérifications manuelles, tests comportementaux
+  → Ne demande JAMAIS de lire des codes ou capteurs OBD2`;
 
     const previousDiagsSection = req.previousDiagnostics.length
         ? req.previousDiagnostics.slice(0, 3).map(d =>

@@ -49,13 +49,20 @@ export class OpenRouterProvider implements AIProviderInterface {
     }
 
     async refineAfterTest(request: TestRefinementRequest): Promise<DiagnosticResponse> {
+        const hasObd2 = request.testResult.obdBefore || request.testResult.obdAfter;
+        const obdContext = hasObd2
+            ? `Données OBD2 avant: ${JSON.stringify(request.testResult.obdBefore)}. Après: ${JSON.stringify(request.testResult.obdAfter)}.`
+            : `Aucune donnée OBD2 disponible (diagnostic sans capteur électronique).`;
+
+        const userContent = `Test effectué : "${request.testResult.testTitle}".
+Réponse de l'utilisateur : ${request.testResult.userResponse}.
+${obdContext}
+Affinez le diagnostic en tenant compte de ce résultat. Retournez le JSON mis à jour.`;
+
         const messages = [
             { role: 'system', content: DIAGNOSTIC_SYSTEM_PROMPT },
             ...request.previousMessages.filter(m => m.role !== 'system'),
-            {
-                role: 'user',
-                content: `Test "${request.testResult.testTitle}". Réponse: ${request.testResult.userResponse}. Affinez en JSON.`,
-            },
+            { role: 'user', content: userContent },
         ];
         const content = await this.callApi(messages, 1500);
         const jsonMatch = content.match(/\{[\s\S]*\}/);
