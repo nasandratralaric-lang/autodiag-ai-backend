@@ -181,9 +181,9 @@ export class DiagnosticsService {
             sessionId: dto.sessionId,
             previousMessages: history.map(m => ({ role: m.role as any, content: m.content })),
             testResult: {
-                testTitle:    test.title,
+                testTitle:    test?.title ?? 'Test',
                 userResponse: dto.userResponse,
-                obdBefore:    test.obdDataBefore as any,
+                obdBefore:    test?.obdDataBefore as any ?? null,
                 obdAfter:     dto.obdAfter as any ?? null,
             },
             currentHypothesis: session.result as any,
