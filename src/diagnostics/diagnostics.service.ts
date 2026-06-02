@@ -94,12 +94,16 @@ export class DiagnosticsService {
         }
 
         // 5. Persister le résultat et les tests recommandés
-        const testsToCreate = (aiResult.recommendedTests ?? []).map((t: any, idx: number) =>
+        // Filtrer les tests sans titre ET ajouter fallbacks pour champs obligatoires
+        const validTests = (aiResult.recommendedTests ?? []).filter(
+            (t: any) => t && (t.title || t.name || t.description || t.instructions)
+        );
+        const testsToCreate = validTests.map((t: any, idx: number) =>
             this.tests.create({
                 sessionId: session.id,
                 sequenceOrder: idx,
-                title: t.title,
-                instructions: t.instructions,
+                title: t.title || t.name || t.description?.substring(0, 100) || `Test ${idx + 1}`,
+                instructions: t.instructions || t.steps || t.description || t.title || 'Effectuez le test',
                 preconditions: t.preconditions ?? [],
                 estimatedDurationSeconds: t.estimatedDurationSeconds ?? 60,
                 risks: t.risks ?? [],
