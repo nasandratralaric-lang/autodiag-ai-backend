@@ -121,15 +121,40 @@ export class DiagnosticsService {
             where: { sessionId: session.id },
             order: { sequenceOrder: 'ASC' },
         });
-        const enrichedResult = {
-            ...aiResult,
-            recommendedTests: (aiResult.recommendedTests ?? []).map((t: any, idx: number) => ({
+        // En mode urgence : si les tests n'ont pas d'instructions utiles,
+        // construire un test unique avec les immediateActions comme étapes numérotées
+        const rawTests = aiResult.recommendedTests ?? [];
+        const hasUsefulTests = rawTests.some((t: any) =>
+            (t.instructions || t.steps || t.action) && t.instructions !== 'Effectuez le test'
+        );
+
+        let finalTests: any[];
+        if (dto.isEmergency && (!hasUsefulTests || rawTests.length === 0) && (aiResult.immediateActions ?? []).length > 0) {
+            // Transformer les immediateActions en un seul test guidé
+            const steps = (aiResult.immediateActions as string[])
+                .map((action, i) => `${i + 1}. ${action}`)
+                .join('\n');
+            finalTests = [{
+                id:           savedTests[0]?.id ?? null,
+                title:        'Actions immédiates à effectuer',
+                instructions: steps,
+                preconditions: ['Sécurisez le véhicule', 'Activez les feux de détresse'],
+                estimatedDurationSeconds: 300,
+                risks: [],
+                pidsToMonitor: [],
+            }];
+        } else {
+            finalTests = rawTests.map((t: any, idx: number) => ({
                 ...t,
                 id:           savedTests[idx]?.id ?? null,
-                // Normaliser title et instructions pour les modèles qui retournent des noms différents
-                title:        t.title || t.name || t.test || t.description?.substring(0, 80) || `Test ${idx + 1}`,
-                instructions: t.instructions || t.steps || t.action || t.description || t.title || 'Effectuez le test',
-            })),
+                title:        t.title || t.name || t.test || t.description?.substring(0, 80) || `Vérification ${idx + 1}`,
+                instructions: t.instructions || t.steps || t.action || t.description || t.title || 'Décrivez ce que vous observez',
+            }));
+        }
+
+        const enrichedResult = {
+            ...aiResult,
+            recommendedTests: finalTests,
         };
 
         const updated = await this.sessions.save({
