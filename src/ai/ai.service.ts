@@ -43,12 +43,18 @@ export class AIService {
     }
 
     async analyze(request: DiagnosticRequest): Promise<DiagnosticResponse & { provider: string; cached: boolean }> {
+        const isEmergency = (request as any).isEmergency === true;
         const cacheKey = this.buildCacheKey(request);
 
-        const cached = await this.redis.get(cacheKey);
-        if (cached) {
-            this.logger.log('Cache hit — diagnostic retourné depuis le cache');
-            return { ...JSON.parse(cached), cached: true, provider: 'cache' };
+        // Pas de cache en mode urgence — chaque panne est unique
+        if (!isEmergency) {
+            const cached = await this.redis.get(cacheKey);
+            if (cached) {
+                this.logger.log('Cache hit — diagnostic retourné depuis le cache');
+                return { ...JSON.parse(cached), cached: true, provider: 'cache' };
+            }
+        } else {
+            this.logger.log('Mode urgence — cache ignoré, analyse directe');
         }
 
         let lastError: Error | null = null;
