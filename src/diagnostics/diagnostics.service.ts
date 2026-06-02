@@ -125,7 +125,10 @@ export class DiagnosticsService {
             ...aiResult,
             recommendedTests: (aiResult.recommendedTests ?? []).map((t: any, idx: number) => ({
                 ...t,
-                id: savedTests[idx]?.id ?? null,  // ← ID DB réel injecté dans la réponse
+                id:           savedTests[idx]?.id ?? null,
+                // Normaliser title et instructions pour les modèles qui retournent des noms différents
+                title:        t.title || t.name || t.test || t.description?.substring(0, 80) || `Test ${idx + 1}`,
+                instructions: t.instructions || t.steps || t.action || t.description || t.title || 'Effectuez le test',
             })),
         };
 
