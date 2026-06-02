@@ -41,13 +41,25 @@ export class OpenRouterProvider implements AIProviderInterface {
 
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
-            this.logger.error(`Réponse non-JSON: ${content.slice(0, 300)}`);
+            this.logger.error(`Réponse non-JSON: ${content.slice(0, 500)}`);
             throw new Error('Aucun JSON dans la réponse OpenRouter');
         }
-        const parsed = JSON.parse(jsonMatch[0]);
-        this.validate(parsed);
-        this.logger.log(`OpenRouter OK — cause: ${parsed.primaryCause?.slice(0, 60)}`);
-        return parsed as DiagnosticResponse;
+
+        let parsed: any;
+        try {
+            parsed = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+            this.logger.error(`JSON invalide: ${jsonMatch[0].slice(0, 300)}`);
+            throw new Error('JSON malformé depuis OpenRouter');
+        }
+
+        // Log partiel pour voir la structure en cas d'erreur
+        this.logger.log(`OpenRouter réponse keys: ${Object.keys(parsed).join(', ')}`);
+
+        // Normaliser les champs manquants plutôt que de rejeter
+        const normalized = this.normalizeResponse(parsed);
+        this.logger.log(`OpenRouter OK — cause: ${normalized.primaryCause?.slice(0, 60)}`);
+        return normalized as DiagnosticResponse;
     }
 
     async refineAfterTest(request: TestRefinementRequest): Promise<DiagnosticResponse> {
@@ -141,10 +153,44 @@ Affinez le diagnostic en tenant compte de ce résultat. Retournez le JSON mis à
         return content;
     }
 
-    private validate(data: unknown): void {
-        const d = data as DiagnosticResponse;
-        if (!d.primaryCause || typeof d.confidence !== 'number' || !d.driveRisk) {
-            throw new Error('Structure de réponse invalide depuis OpenRouter');
+    private normalizeResponse(data: any): DiagnosticResponse {
+        // Certains modèles retournent des structures légèrement différentes
+        // On normalise plutôt que de rejeter
+
+        // Champs obligatoires avec fallback raisonnables
+        const primaryCause = data.primaryCause
+            || data.primary_cause
+            || data.cause
+            || data.diagnosis
+            || (data.causes?.[0]?.description)
+            || 'Cause à déterminer';
+
+        const confidence = typeof data.confidence === 'number'
+            ? data.confidence
+            : parseInt(data.confidence) || 50;
+
+        const driveRisk = data.driveRisk
+            || data.drive_risk
+            || data.riskToDrive
+            || 'monitor';
+
+        const severity = data.severity || 'medium';
+
+        if (!data.primaryCause) {
+            this.logger.warn(`Normalisation réponse: primaryCause manquant, utilise "${primaryCause}"`);
         }
+
+        return {
+            primaryCause,
+            confidence,
+            severity,
+            driveRisk,
+            causes:             data.causes            || [{ description: primaryCause, confidence, severity, component: null, suggestedParts: [] }],
+            estimatedRepairCost:data.estimatedRepairCost || null,
+            immediateActions:   data.immediateActions  || data.immediate_actions || [],
+            explanation:        data.explanation        || primaryCause,
+            technicalSummary:   data.technicalSummary  || data.technical_summary || primaryCause,
+            recommendedTests:   data.recommendedTests   || data.recommended_tests || [],
+        };
     }
 }
