@@ -19,7 +19,8 @@ export interface StartDiagnosticDto {
     userDescription: string;
     obdSnapshot?: Record<string, any>;
     obd2SessionId?: string;
-    mechanicLevel?: string;  // beginner | intermediate | advanced
+    mechanicLevel?: string;
+    isEmergency?: boolean;   // mode panne urgence
 }
 
 export interface SubmitTestResultDto {
@@ -290,7 +291,9 @@ export class DiagnosticsService {
             maintenanceHistory,        // ← historique entretien réel
             symptoms:                  dto.symptoms,
             recentWorks:               dto.recentWorks.map(w => ({ ...w, date: w.date ?? null })),
-            userDescription:           levelPrefix + (dto.userDescription || ''),
+            userDescription:           (dto.isEmergency ? '[MODE URGENCE — PANNE EN BORD DE ROUTE]\n' : '')
+                                       + levelPrefix + (dto.userDescription || ''),
+            ...(dto.isEmergency && { isEmergency: true }),
             obdSnapshot:               dto.obdSnapshot as any ?? null,
             previousDiagnostics,       // ← diagnostics précédents du même véhicule
         };

@@ -4,7 +4,7 @@ import {
     AIProviderInterface, DiagnosticRequest, DiagnosticResponse,
     TestRefinementRequest, ChatMessage,
 } from '../ai.interface';
-import { buildDiagnosticContext, DIAGNOSTIC_SYSTEM_PROMPT } from '../ai.prompts';
+import { buildDiagnosticContext, DIAGNOSTIC_SYSTEM_PROMPT, EMERGENCY_SYSTEM_PROMPT } from '../ai.prompts';
 
 /**
  * Provider OpenRouter — utilise fetch() directement (pas le SDK OpenAI)
@@ -31,9 +31,11 @@ export class OpenRouterProvider implements AIProviderInterface {
     }
 
     async analyze(request: DiagnosticRequest): Promise<DiagnosticResponse> {
-        this.logger.log(`OpenRouter fetch → ${this.model}`);
+        const isEmergency = (request as any).isEmergency;
+        const systemPrompt = isEmergency ? EMERGENCY_SYSTEM_PROMPT : DIAGNOSTIC_SYSTEM_PROMPT;
+        this.logger.log(`OpenRouter fetch → ${this.model} ${isEmergency ? '[MODE URGENCE]' : ''}`);
         const content = await this.callApi([
-            { role: 'system', content: DIAGNOSTIC_SYSTEM_PROMPT },
+            { role: 'system', content: systemPrompt },
             { role: 'user',   content: buildDiagnosticContext(request) },
         ], 1500);
 
