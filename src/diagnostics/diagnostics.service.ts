@@ -289,9 +289,9 @@ export class DiagnosticsService {
             maintenanceHistory,        // ← historique entretien réel
             symptoms:                  dto.symptoms,
             recentWorks:               dto.recentWorks.map(w => ({ ...w, date: w.date ?? null })),
+            // Le préfixe urgence est injecté dans userDescription — plus besoin de propriété séparée
             userDescription:           (dto.isEmergency ? '[MODE URGENCE — PANNE EN BORD DE ROUTE]\n' : '')
                                        + levelPrefix + (dto.userDescription || ''),
-            ...(dto.isEmergency && { isEmergency: true }),
             obdSnapshot:               dto.obdSnapshot as any ?? null,
             previousDiagnostics,       // ← diagnostics précédents du même véhicule
         };

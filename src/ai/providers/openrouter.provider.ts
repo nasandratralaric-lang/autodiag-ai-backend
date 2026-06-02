@@ -31,7 +31,8 @@ export class OpenRouterProvider implements AIProviderInterface {
     }
 
     async analyze(request: DiagnosticRequest): Promise<DiagnosticResponse> {
-        const isEmergency = (request as any).isEmergency;
+        // Détecter le mode urgence via le préfixe dans userDescription
+        const isEmergency = request.userDescription?.includes('[MODE URGENCE') === true;
         const systemPrompt = isEmergency ? EMERGENCY_SYSTEM_PROMPT : DIAGNOSTIC_SYSTEM_PROMPT;
         this.logger.log(`OpenRouter fetch → ${this.model} ${isEmergency ? '[MODE URGENCE]' : ''}`);
         const content = await this.callApi([

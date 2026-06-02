@@ -43,7 +43,8 @@ export class AIService {
     }
 
     async analyze(request: DiagnosticRequest): Promise<DiagnosticResponse & { provider: string; cached: boolean }> {
-        const isEmergency = (request as any).isEmergency === true;
+        // Détecter le mode urgence via le préfixe dans userDescription (plus fiable)
+        const isEmergency = request.userDescription?.includes('[MODE URGENCE') === true;
         const cacheKey = this.buildCacheKey(request);
 
         // Pas de cache en mode urgence — chaque panne est unique
