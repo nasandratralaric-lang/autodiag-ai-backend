@@ -105,6 +105,19 @@ export class DiagnosticsService {
             await this.tests.save(testsToCreate);
         }
 
+        // Enrichir le résultat avec les IDs DB des tests pour que l'app puisse les utiliser
+        const savedTests = await this.tests.find({
+            where: { sessionId: session.id },
+            order: { sequenceOrder: 'ASC' },
+        });
+        const enrichedResult = {
+            ...aiResult,
+            recommendedTests: (aiResult.recommendedTests ?? []).map((t: any, idx: number) => ({
+                ...t,
+                id: savedTests[idx]?.id ?? null,  // ← ID DB réel injecté dans la réponse
+            })),
+        };
+
         const updated = await this.sessions.save({
             ...session,
             status:       'completed',
@@ -113,7 +126,7 @@ export class DiagnosticsService {
             severity:     aiResult.severity,
             driveRisk:    aiResult.driveRisk,
             aiProvider:   aiResult.provider,
-            result:       aiResult,
+            result:       enrichedResult,
         });
 
         this.logger.log(
@@ -126,17 +139,36 @@ export class DiagnosticsService {
 
     async submitTestResult(dto: SubmitTestResultDto): Promise<DiagnosticSession> {
         const session = await this.findSession(dto.sessionId, dto.userId);
-        const test = await this.tests.findOne({ where: { id: dto.testId, sessionId: dto.sessionId } });
-        if (!test) throw new NotFoundException('Test non trouvé');
 
-        // Mettre à jour le test
-        await this.tests.save({
-            ...test,
-            status: 'completed',
-            userResponse: dto.userResponse,
-            obdDataAfter: dto.obdAfter ?? null,
-            completedAt: new Date(),
-        });
+        // Chercher d'abord par ID exact, sinon prendre le prochain test en attente
+        // (l'app Android peut envoyer un UUID client qui ne correspond pas à l'ID DB)
+        let test = dto.testId
+            ? await this.tests.findOne({ where: { id: dto.testId, sessionId: dto.sessionId } })
+            : null;
+
+        if (!test) {
+            // Fallback : prendre le premier test pending de la session
+            test = await this.tests.findOne({
+                where: { sessionId: dto.sessionId, status: 'pending' },
+                order: { sequenceOrder: 'ASC' },
+            });
+        }
+
+        if (!test) {
+            // Pas de test trouvé — affiner quand même le diagnostic avec les données OBD2
+            this.logger.warn(`submitTestResult: aucun test trouvé pour session ${dto.sessionId}, affinage direct`);
+        }
+
+        // Mettre à jour le test (seulement s'il existe)
+        if (test) {
+            await this.tests.save({
+                ...test,
+                status: 'completed',
+                userResponse: dto.userResponse,
+                obdDataAfter: dto.obdAfter ?? null,
+                completedAt: new Date(),
+            });
+        }
 
         // Construire l'historique de conversation pour l'affinage
         const history = await this.messages.find({
