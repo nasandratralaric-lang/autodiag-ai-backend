@@ -77,9 +77,11 @@ export class AIService {
     async refineAfterTest(request: TestRefinementRequest): Promise<DiagnosticResponse & { provider: string }> {
         for (const provider of this.providers) {
             try {
+                // Même timeout que analyze pour OpenRouter
+                const timeoutMs = provider.name === 'openrouter' ? 120_000 : 30_000;
                 const result = await this.withTimeout(
                     provider.refineAfterTest(request),
-                    20_000,
+                    timeoutMs,
                     `${provider.name} timeout`
                 );
                 return { ...result, provider: provider.name };
@@ -87,7 +89,11 @@ export class AIService {
                 this.logger.warn(`Provider ${provider.name} refine failed: ${error.message}`);
             }
         }
-        throw new Error('Tous les providers IA indisponibles');
+
+        // Fallback : retourner l'hypothèse courante sans modification
+        // plutôt que de crasher avec une 500
+        this.logger.warn('Tous les providers IA indisponibles pour refineAfterTest — hypothèse inchangée');
+        return { ...request.currentHypothesis, provider: 'fallback-unchanged' };
     }
 
     async chat(messages: ChatMessage[], systemPrompt?: string): Promise<string> {
