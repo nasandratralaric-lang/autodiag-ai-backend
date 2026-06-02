@@ -8,6 +8,7 @@ import { AIService } from '../ai/ai.service';
 import { DiagnosticRequest } from '../ai/ai.interface';
 import { DiagnosticSession, DiagnosticMessage, DiagnosticTest } from './entities/diagnostic-session.entity';
 import { Vehicle } from '../vehicles/entities/vehicle.entity';
+import { User } from '../users/entities/user.entity';
 import { MaintenanceService } from '../maintenance/maintenance.service';
 
 export interface StartDiagnosticDto {
@@ -18,6 +19,7 @@ export interface StartDiagnosticDto {
     userDescription: string;
     obdSnapshot?: Record<string, any>;
     obd2SessionId?: string;
+    mechanicLevel?: string;  // beginner | intermediate | advanced
 }
 
 export interface SubmitTestResultDto {
@@ -41,15 +43,21 @@ export class DiagnosticsService {
         private readonly tests: Repository<DiagnosticTest>,
         @InjectRepository(Vehicle)
         private readonly vehicles: Repository<Vehicle>,
+        @InjectRepository(User)
+        private readonly usersRepository: Repository<User>,
         private readonly aiService: AIService,
         private readonly maintenanceService: MaintenanceService,
     ) {}
 
     async startDiagnostic(dto: StartDiagnosticDto): Promise<DiagnosticSession> {
-        // 1. Charger le véhicule (avec vérification propriété)
+        // 1. Charger le véhicule + niveau mécanique de l'utilisateur
         const vehicle = await this.vehicles.findOne({ where: { id: dto.vehicleId } });
         if (!vehicle) throw new NotFoundException('Véhicule non trouvé');
         if (vehicle.userId !== dto.userId) throw new ForbiddenException();
+
+        // Récupérer le niveau mécanique depuis le profil utilisateur
+        const userProfile = await this.usersRepository?.findOne({ where: { id: dto.userId } }).catch(() => null);
+        const mechanicLevel = dto.mechanicLevel ?? userProfile?.mechanicLevel ?? 'beginner';
 
         // 2. Créer la session
         const session = await this.sessions.save(
@@ -75,7 +83,7 @@ export class DiagnosticsService {
         );
 
         // 4. Assembler le contexte IA
-        const context = await this.buildDiagnosticRequest(vehicle, dto, maintenanceHistory);
+        const context = await this.buildDiagnosticRequest(vehicle, dto, maintenanceHistory, mechanicLevel);
 
         // 4. Appeler l'IA
         let aiResult: any;
@@ -242,7 +250,14 @@ export class DiagnosticsService {
         vehicle: Vehicle,
         dto: StartDiagnosticDto,
         maintenanceHistory: any[] = [],
+        mechanicLevel: string = 'beginner',
     ): Promise<DiagnosticRequest> {
+        // Le niveau mécanique est injecté dans le userDescription pour que l'IA l'intègre
+        const levelPrefix = {
+            beginner:     '[NIVEAU: Débutant — utilise un langage simple, explique chaque terme technique, sois rassurant]\n',
+            intermediate: '[NIVEAU: Intermédiaire — peut utiliser quelques termes techniques courants]\n',
+            advanced:     '[NIVEAU: Mécanicien — langage technique complet, pas besoin d\'explications basiques]\n',
+        }[mechanicLevel] ?? '';
         // Charger les 5 derniers diagnostics du véhicule pour la mémoire long terme
         const previousDiagnostics = await this.sessions
             .find({
@@ -275,7 +290,7 @@ export class DiagnosticsService {
             maintenanceHistory,        // ← historique entretien réel
             symptoms:                  dto.symptoms,
             recentWorks:               dto.recentWorks.map(w => ({ ...w, date: w.date ?? null })),
-            userDescription:           dto.userDescription,
+            userDescription:           levelPrefix + (dto.userDescription || ''),
             obdSnapshot:               dto.obdSnapshot as any ?? null,
             previousDiagnostics,       // ← diagnostics précédents du même véhicule
         };

@@ -15,7 +15,7 @@ export class UsersService {
         return user;
     }
 
-    async updateProfile(id: string, dto: Partial<Pick<User, 'firstName' | 'lastName' | 'avatarUrl' | 'locale'>>) {
+    async updateProfile(id: string, dto: Partial<Pick<User, 'firstName' | 'lastName' | 'avatarUrl' | 'locale' | 'mechanicLevel'>>) {
         await this.users.update(id, dto);
         return this.findById(id);
     }

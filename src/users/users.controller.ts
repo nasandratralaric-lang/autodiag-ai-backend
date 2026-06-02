@@ -1,6 +1,6 @@
 import { Controller, Get, Patch, Delete, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { IsOptional, IsString, IsBoolean } from 'class-validator';
+import { IsOptional, IsString, IsBoolean, IsEnum } from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UsersService } from './users.service';
 
@@ -8,6 +8,8 @@ class UpdateProfileDto {
     @IsOptional() @IsString() firstName?: string;
     @IsOptional() @IsString() lastName?: string;
     @IsOptional() @IsString() locale?: string;
+    @IsOptional() @IsEnum(['beginner', 'intermediate', 'advanced'])
+    mechanicLevel?: string;
 }
 
 class UpdateConsentsDto {

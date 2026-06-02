@@ -47,6 +47,14 @@ export class User {
     @Column({ type: 'varchar', nullable: true })
     stripeCustomerId: string | null;
 
+    // Niveau de connaissance mécanique — adapte le langage du diagnostic IA
+    @Column({
+        type: 'enum',
+        enum: ['beginner', 'intermediate', 'advanced'],
+        default: 'beginner',
+    })
+    mechanicLevel: string;
+
     @Column({ type: 'boolean', default: false })
     consentAnalytics: boolean;
 
