@@ -23,10 +23,17 @@ export class DiagnosticsController {
     @ApiOperation({ summary: 'Lance un nouveau diagnostic IA' })
     @ApiResponse({ status: 201, description: 'Diagnostic créé et analysé' })
     async analyze(@Body() dto: Omit<StartDiagnosticDto, 'userId'>, @Request() req) {
-        return this.diagnosticsService.startDiagnostic({
-            ...dto,
-            userId: req.user.id,
-        });
+        try {
+            return await this.diagnosticsService.startDiagnostic({
+                ...dto,
+                userId: req.user.id,
+            });
+        } catch (error) {
+            // Log l'erreur réelle pour debug
+            this['logger'] = this['logger'] || { error: console.error };
+            console.error('[DiagnosticsController] analyze error:', error?.message, error?.stack?.split('\n')[1]);
+            throw error;
+        }
     }
 
     @Get(':sessionId')
