@@ -99,6 +99,27 @@ export class MaintenanceService {
         }));
     }
 
+    async update(id: string, userId: string, dto: Partial<CreateMaintenanceDto>): Promise<MaintenanceRecord> {
+        const record = await this.records.findOne({ where: { id } });
+        if (!record) throw new NotFoundException('Intervention non trouvée');
+        if (record.userId !== userId) throw new ForbiddenException();
+
+        await this.records.update(id, {
+            ...(dto.title       && { title:       dto.title }),
+            ...(dto.category    && { category:    dto.category }),
+            ...(dto.description !== undefined && { description: dto.description }),
+            ...(dto.date        && { date:        dto.date }),
+            ...(dto.mileageKm   !== undefined && { mileageKm:   dto.mileageKm }),
+            ...(dto.cost        !== undefined && { cost:        dto.cost }),
+            ...(dto.currency    && { currency:    dto.currency }),
+            ...(dto.garageName  !== undefined && { garageName:  dto.garageName }),
+            ...(dto.nextDueDate !== undefined && { nextDueDate: dto.nextDueDate }),
+            ...(dto.nextDueMileage !== undefined && { nextDueMileage: dto.nextDueMileage }),
+        });
+
+        return this.records.findOne({ where: { id } }) as Promise<MaintenanceRecord>;
+    }
+
     async delete(id: string, userId: string): Promise<void> {
         const record = await this.records.findOne({ where: { id } });
         if (!record) throw new NotFoundException();

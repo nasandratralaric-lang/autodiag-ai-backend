@@ -1,5 +1,5 @@
 import {
-    Controller, Get, Post, Delete, Param, Body,
+    Controller, Get, Post, Patch, Delete, Param, Body,
     UseGuards, Request, HttpCode, HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
@@ -46,6 +46,16 @@ export class MaintenanceController {
     @ApiOperation({ summary: 'Rappels de maintenance en attente' })
     getReminders(@Request() req) {
         return this.maintenanceService.getPendingReminders(req.user.id);
+    }
+
+    @Patch(':id')
+    @ApiOperation({ summary: 'Modifier une intervention' })
+    update(
+        @Param('id') id: string,
+        @Body() dto: Partial<CreateMaintenanceBody>,
+        @Request() req,
+    ) {
+        return this.maintenanceService.update(id, req.user.id, dto);
     }
 
     @Delete(':id')
