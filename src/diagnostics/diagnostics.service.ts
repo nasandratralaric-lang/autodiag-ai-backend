@@ -222,7 +222,7 @@ export class DiagnosticsService {
                 .filter(s => s.primaryCause)
                 .map(s => ({
                     date:          s.createdAt.toISOString().split('T')[0],
-                    primaryCause:  s.primaryCause,
+                    primaryCause:  s.primaryCause ?? '',
                     repair:        s.repairDescription ?? null,
                     resolved:      s.repairResolved ?? null,
                 }))
